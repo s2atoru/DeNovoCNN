@@ -1,0 +1,47 @@
+name: tensorflow_env_bioconda_py39
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.9.22
+  - bcftools=1.21
+  - htslib=1.21
+  - pysam=0.23.0
+  - tabix=1.11
+  - pip:
+    - h5py==3.13.0
+    - pytz==2020.1
+    - opt_einsum==3.3.0
+    - numpy==1.26.4
+    - scipy==1.13.1
+    - pandas==1.5.3
+    - pillow==8.0.0
+    - opencv-python==4.5.1.48
+    - asttokens==2.0.5
+    - backcall==0.2.0
+    - decorator==5.1.1
+    - executing==0.8.3
+    - ipython==8.2.0
+    - jedi==0.18.1
+    - tensorflow==2.5.3
+    - tensorboard-plugin-wit
+    - keras-preprocessing==1.1.2
+    - keras-tuner==1.4.7
+    - kt-legacy==1.0.4
+    - matplotlib-inline
+    - packaging==21.3
+    - parso==0.8.3
+    - pexpect==4.8.0
+    - pickleshare==0.7.5
+    - prompt-toolkit==3.0.29
+    - ptyprocess==0.7.0
+    - pure-eval==0.2.2
+    - pygments==2.11.2
+    - pyparsing==3.0.7
+    - stack-data==0.2.0
+    - tensorflow-addons
+    - tqdm==4.64.0
+    - traitlets==5.1.1
+    - typeguard==2.13.3
+    - wcwidth==0.2.5
+
