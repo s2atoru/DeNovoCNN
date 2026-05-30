@@ -1,0 +1,22 @@
+# data and intermediate outputs
+data/
+output/
+output_py39/
+images/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# editor / local settings
+.vscode/
+
+# experiment outputs
+output*.txt
+denovonet/output*.txt
+*.npy
+distribution_of_predictions*.png
+
+# conda environment dumps
+conda-list
+conda-list-*
