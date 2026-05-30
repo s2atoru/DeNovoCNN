@@ -170,13 +170,6 @@ class Dataset:
             for x in range(0, len(dataset_batches), batch_size)
         ]
 
-        # dataset_batchesの長さを確認
-        print(f"Number of dataset_batches: {len(dataset_batches)}")
-
-        # それぞれのbatchの長さを表示
-        for i, batch in enumerate(dataset_batches):
-            print(f"Batch {i + 1} length: {len(batch)}")
-
         # GPU を無効化して CPU のみを使用
         tf.config.set_visible_devices([], "GPU")
         print("Num GPUs Available: ", len(tf.config.list_physical_devices("GPU")))
@@ -440,14 +433,9 @@ def apply_model(row, models_dict, reference_genome_path):
     """
     _, _, _, var_type, _, _, _ = tuple(row)
 
-    start_time = datetime.datetime.now()
     trio_variant = get_image(tuple(row) + (None, None), reference_genome_path)
-    end_time = datetime.datetime.now()
-    print(f"Time taken to process row: {end_time - start_time}")
 
     try:
-        start_time = datetime.datetime.now()
-
         # predict
         prediction = trio_variant.predict(models_dict[var_type])
         prediction_dnm = str(round(1.0 - prediction[0, 0], 3))
@@ -455,9 +443,6 @@ def apply_model(row, models_dict, reference_genome_path):
         child_coverage = trio_variant.child_variant.start_coverage
         father_coverage = trio_variant.father_variant.start_coverage
         mother_coverage = trio_variant.mother_variant.start_coverage
-
-        end_time = datetime.datetime.now()
-        print(f"Time taken for prediction: {end_time - start_time}")
     except KeyError:
         print("Failed in:")
         print("\t", row)
@@ -519,26 +504,13 @@ def apply_models_on_trio(
     # apply models
     dataset = Dataset(dataset=dataset, convert_to_inner_format=convert_to_inner_format)
 
-    # dataset.datasetの列名を表示
-    print(dataset.dataset.columns.tolist())
+    dataset.apply_model(
+        models_cfg=models_cfg,
+        reference_genome_path=ref_genome,
+        n_jobs=n_jobs,
+        batch_size=1000,
+    )
 
-    # "Variant type"の数を表示
-    print(f"Variant types: {dataset.dataset['Variant type'].nunique()}")
-    # "Variant type"の頻度を表示
-    print(dataset.dataset["Variant type"].value_counts())
-
-    # dataset.datasetの行数を表示
-    print(f"Number of rows in dataset: {len(dataset.dataset)}")
-
-    dataset.save_images("images", reference_genome_path=ref_genome, n_jobs=-1)
-
-    # dataset.apply_model(
-    #     models_cfg=models_cfg,
-    #     reference_genome_path=ref_genome,
-    #     n_jobs=n_jobs,
-    #     batch_size=1000,
-    # )
-
-    # dataset.save_dataset(
-    #     output_path=output_path, output_denovocnn_format=output_denovocnn_format
-    # )
+    dataset.save_dataset(
+        output_path=output_path, output_denovocnn_format=output_denovocnn_format
+    )
