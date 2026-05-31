@@ -222,6 +222,7 @@ fi
 
 echo "Preprocessing step finished."
 echo "Running DenovoCNN..."
+echo "Variants list file: $VARIANTS_LIST" 
 
 script_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 
