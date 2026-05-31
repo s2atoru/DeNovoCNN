@@ -20,3 +20,9 @@ distribution_of_predictions*.png
 # conda environment dumps
 conda-list
 conda-list-*
+
+# ppt build artifacts (docs/slides)
+docs/slides/node_modules/
+docs/slides/*.pdf
+docs/slides/slide-*.jpg
+docs/slides/assets/cand_*.png
