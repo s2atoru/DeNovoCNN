@@ -188,20 +188,27 @@ class Dataset:
 
         pool = mp.Pool(n_jobs)
 
-        results = pool.map(
-            partial(
-                apply_model_batch,
-                models_cfg=models_cfg,
-                reference_genome_path=reference_genome_path,
+        results = []
+        total_batches = len(dataset_batches)
+
+        for i, result in enumerate(
+            pool.imap_unordered(
+                partial(
+                    apply_model_batch,
+                    models_cfg=models_cfg,
+                    reference_genome_path=reference_genome_path
+                ),
+                dataset_batches
             ),
-            dataset_batches,
-        )
+            start=1
+        ):
+            results.append(result)
+            print(f"Completed batch {i}/{total_batches}, time elapsed: {datetime.datetime.now() - start}", flush=True)
 
         pool.close()
-        print(
-            "Applying DeNovoCNN finished, time elapsed:",
-            datetime.datetime.now() - start,
-        )
+        pool.join()
+
+        print("Applying DeNovoCNN finished, time elapsed:", datetime.datetime.now() - start)
         sys.stdout.flush()
 
         # flattern results
