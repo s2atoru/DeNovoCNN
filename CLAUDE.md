@@ -8,6 +8,7 @@ DeNovoCNN calls de novo mutations (DNMs) from trio sequencing data (child + fath
 
 ## Repository docs
 
+- `docs/BACKGROUND.md` — why this fork diverges from upstream (license/Anaconda constraint, old-TF/GPU constraint, model file rewrite), and the current gap versus running predictions on our own data.
 - `docs/ENVIRONMENT.md` — conda envs, TF/Keras compatibility, GPU/Docker execution, performance notes.
 - `docs/TRAINING.md` — training spec reconstructed from the paper (training code is not in the repo).
 - `logs.md` — raw working log (benchmarks, Docker commands, env experiments).
