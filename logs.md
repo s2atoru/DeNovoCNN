@@ -138,3 +138,54 @@ consistency」に記載。
   `tar + pigz`で圧縮アーカイブ（sha256チェックサム付き）してから元ディレクトリを削除
 
 結果: `/dev/sda4` 空き 0 → 43GB（70%使用）まで回復。
+
+### 3モデル（snp/ins/del）のCPU/GPU推論スループット比較
+
+`predict_del.py`（deletionモデルのみ）と同じ手法を、`data/publish_images/<type>/train/DNM`
+を使ってsubstitution/insertion/deletionの3モデルに拡張して計測。
+
+- CPU: conda env `py311_tf25`（TF2.15.1、`CUDA_VISIBLE_DEVICES=""`）
+- GPU: `denovocnn-gpu` Dockerイメージ（`--gpus '"device=0"'`）
+
+| モデル | 画像数 | CPU (s/1000枚) | GPU (s/1000枚) | 速度比 |
+|---|---|---|---|---|
+| Substitution | 6,179 | 25.06 | 1.82 | 約13.8倍 |
+| Insertion | 988 | 24.71 | 1.97 | 約12.5倍 |
+| Deletion | 1,350 | 25.24 | 1.90 | 約13.3倍 |
+
+3モデルとも CPU 約25秒/1000枚 → GPU 約1.9秒/1000枚 で、約13倍のGPU高速化。CPU側の値は
+既存ログの「画像をmodelで処理した場合は1000枚約0.46分」（≒27.6秒/1000枚、deletionのみ）と
+ほぼ一致。あくまで`model.predict()`のみの時間で、画像生成・trioパイプライン全体は含まない。
+
+### test setで論文（Suppl. Table 5）の性能を再現できるか検証
+
+`data/publish_images/<type>/test/{DNM,IV}`の画像数を数えたところ、論文の報告値
+（test: 1,564 DNM / 8,410 IV、内訳 subs 1309/7322・ins 85/494・del 170/594）と完全一致 —
+つまりこのローカルデータはpublished test setそのもの。そこで`models/{snp,ins,del}.h5`で
+推論し、Suppl. Table 5（ROC AUC/Accuracy/Recall/Specificity/F1/Precision/混同行列）を
+再現できるか検証するスクリプト `eval_test_performance.py` を作成（リポジトリに追加）。
+
+**注意点（ハマったポイント）**: raw sigmoid出力をそのまま「DNM確率」として使うと、
+指標が論文とほぼ完全に反転した値になった（AUC ≈ 0.0005 など）。原因は
+`denovonet/dataset_o.py:439` の `prediction_dnm = 1.0 - prediction[0, 0]` —
+**モデルの生出力はP(IV)であり、DNM確率は `1 - raw_output`**。これを踏まえてスクリプトを
+修正した後は、以下の通り論文の混同行列・各指標と完全一致した。
+
+| Metric | Total | Substitutions | Insertions | Deletions |
+|---|---|---|---|---|
+| ROC AUC | 0.9988 | 0.9995 | 0.9957 | 0.9842 |
+| Accuracy | 0.9895 | 0.9932 | 0.9827 | 0.9529 |
+| Recall | 0.9674 | 0.9771 | 0.9176 | 0.9176 |
+| Specificity | 0.9936 | 0.9960 | 0.9939 | 0.9630 |
+| F1 | 0.9665 | 0.9775 | 0.9398 | 0.8966 |
+| Precision | 0.9655 | 0.9778 | 0.9630 | 0.8764 |
+| TP/FP/TN/FN | 1513/54/8356/51 | 1279/29/7293/30 | 78/3/491/7 | 156/22/572/14 |
+
+（論文Suppl. Table 5と全項目・混同行列とも完全一致。`.h5`への書き換え後モデルが
+published test performanceを正しく再現していることを確認できた。）
+
+実行方法:
+```bash
+python eval_test_performance.py
+# or: EVAL_OUT=<path> python eval_test_performance.py
+```
