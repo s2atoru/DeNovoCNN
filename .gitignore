@@ -26,3 +26,7 @@ docs/slides/node_modules/
 docs/slides/*.pdf
 docs/slides/slide-*.jpg
 docs/slides/assets/cand_*.png
+
+# internal data-inventory report (references collaborator/sample-level data details)
+docs/2026May_data_inventory.md
+docs/2026May_data_inventory.pdf
