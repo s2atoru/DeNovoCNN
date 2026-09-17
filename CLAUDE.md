@@ -74,6 +74,20 @@ DNM threshold: probability >= 0.5.
 
 **Models**: stored in `models/` as `.h5` files (`snp.h5`, `ins.h5`, `del.h5`) and as SavedModel directories (`snp_new/`, `ins_new/`, `del_new/`).
 
+## Git / GitHub workflow
+
+This repo (`s2atoru/DeNovoCNN`) is a fork with an `upstream` remote
+(`Genome-Bioinformatics-RadboudUMC/DeNovoCNN`) configured alongside `origin`.
+`gh` commands that infer the target repo from context (e.g. `gh pr create`,
+`gh repo view`) can resolve to the **upstream** parent instead of the fork,
+which fails with `Resource not accessible by personal access token` since
+there's no write access there. Always pass `--repo s2atoru/DeNovoCNN`
+explicitly, e.g.:
+
+```bash
+gh pr create --repo s2atoru/DeNovoCNN --base main --head <branch> --title "..." --body "..."
+```
+
 ## Current state of dataset.py
 
 `apply_models_on_trio()` currently has the `apply_model` and `save_dataset` calls commented out and instead calls `save_images()` to dump PNG files to an `images/` directory. GPU is also explicitly disabled (`tf.config.set_visible_devices([], "GPU")`). This is work-in-progress state — the original prediction flow is in `dataset_o.py`.
