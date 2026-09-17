@@ -1,0 +1,36 @@
+# GPU runtime image for DeNovoCNN, verified against this machine's GPUs
+# (4x NVIDIA RTX 6000 Ada, driver 570.144, compute capability 8.9).
+#
+# The base image ships a CUDA 12.2 toolchain and Python 3.11 but no
+# TensorFlow (it's TF's *build* image, not a runtime image) — see
+# docs/BACKGROUND.md / docs/ENVIRONMENT.md for why TF 2.15.x is the target
+# (last version that keeps Keras 2, so the repo's .h5 models still load).
+#
+# Build:
+#   docker build -f Dockerfile.gpu -t denovocnn-gpu .
+# Run (mount your own VCF/BAM/reference data under /input, results under /output):
+#   docker run --rm --gpus all -v $(pwd)/output:/output -v <DATA_DIR>:/input denovocnn-gpu \
+#     ./apply_denovocnn.sh -w=/output -cv=... -fv=... -mv=... -cb=... -fb=... -mb=... \
+#       -sm=models/snp -im=models/ins -dm=models/del -g=/input/genome.fa -o=/output/predictions.csv
+FROM tensorflow/build:2.15-python3.11
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bcftools \
+    tabix \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir \
+    tensorflow==2.15.1 \
+    pysam \
+    opencv-python-headless \
+    pandas \
+    Pillow
+
+COPY . /app
+RUN pip install --no-cache-dir -e /app
+
+RUN chmod +x /app/apply_denovocnn.sh
+
+CMD ["/app/apply_denovocnn.sh", "--help"]

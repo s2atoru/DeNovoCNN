@@ -170,8 +170,6 @@ class Dataset:
             for x in range(0, len(dataset_batches), batch_size)
         ]
 
-        # GPU を無効化して CPU のみを使用
-        tf.config.set_visible_devices([], "GPU")
         print("Num GPUs Available: ", len(tf.config.list_physical_devices("GPU")))
         n_jobs = 1
 

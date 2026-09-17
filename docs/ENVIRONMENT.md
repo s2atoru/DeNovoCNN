@@ -33,18 +33,48 @@ doc: GIAB AshkenazimTrio (HG002/3/4, GRCh37).
   this machine's GPUs (4× NVIDIA RTX 6000 Ada, compute capability 8.9) need CUDA ≥ 11.8 —
   so TF 2.3.1 cannot use them. `dataset.py` explicitly disables GPU for this reason.
 - **GPU runs go through Docker** (preferred direction going forward, per `logs.md`).
-  Main image: `tensorflow/build:2.15-python3.11`. Other images tried:
-  `tensorflow/tensorflow:latest-gpu`, locally-built `denovocnn` (from the repo
-  `Dockerfile`, `FROM continuumio/miniconda3`).
+  `tensorflow/build:2.15-python3.11` is TF's *build* image (CUDA 12.2 toolchain,
+  Python 3.11) — it does **not** ship TensorFlow itself; earlier Docker runs
+  installed TF and the Python deps by hand inside an interactive container each
+  time. **`Dockerfile.gpu`** (repo root) bakes that setup into a reusable image,
+  verified end-to-end (GPU visible, `dataset_o.py` model load + predict):
   ```bash
-  docker run --rm --gpus '"device=0"' -it \
-    -v $(pwd):/app -v $(pwd)/output:/output -v <DATA_DIR>:/input \
-    tensorflow/build:2.15-python3.11 /bin/bash
+  docker build -f Dockerfile.gpu -t denovocnn-gpu .
+  docker run --rm --gpus all -v <DATA_DIR>:/input -v $(pwd)/output:/output denovocnn-gpu \
+    ./apply_denovocnn.sh -w=/output -cv=... -fv=... -mv=... -cb=... -fb=... -mb=... \
+      -sm=models/snp -im=models/ins -dm=models/del -g=/input/genome.fa -o=/output/predictions.csv
   ```
-  Inside the container, `run_docker.sh` calls `apply_denovocnn.sh` with `/input` and `/output` paths.
+  Other images tried and no longer used: `tensorflow/tensorflow:latest-gpu`
+  (removed — unused, not shared with any kept image), locally-built `denovocnn`
+  from the repo's plain `Dockerfile` (`FROM continuumio/miniconda3`, removed —
+  actually built from an ad-hoc `nvidia/cuda:11.0.3-cudnn8` + TF 2.4.4 setup that
+  doesn't match this machine's GPUs and can't load the re-saved `.h5`/`_new`
+  models; see `docs/BACKGROUND.md`).
 - Alternatively, run on the host with the py39 env by exporting its libs:
   `export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH` (for `tensorflow_env_bioconda_py39`).
 - Driver caveat: `moonshot-gpu1` supports up to CUDA 12.2, so TF 2.15.1 is the practical choice there.
+
+## CPU vs GPU numerical consistency
+
+Verified (2026-09-17) that CPU and GPU inference do **not** produce bit-identical
+predictions, as expected — CPU (Eigen/oneDNN) and GPU (cuDNN) kernels use
+different floating-point reduction orders. Same `.h5` models, same fixed-seed
+inputs, compared raw (pre-rounding) prediction values:
+
+| model | CPU vs GPU absolute difference (5 samples) |
+|---|---|
+| Substitution | ~0.000002 – 0.000024 |
+| Deletion | ~0.000002 – 0.000006 |
+| Insertion | ~0.00012 – 0.0002 |
+
+`apply_model()` rounds the final DNM probability to 3 decimals
+(`round(1.0 - prediction, 3)`), so this level of difference does not change the
+rounded value or the de novo call (threshold 0.5) for the vast majority of
+variants. The one edge case: a variant whose raw probability lands within
+~0.0002 of the 0.5 threshold could in principle be called differently on CPU
+vs GPU. For strict reproducibility requirements, record which backend
+(CPU/GPU) produced a given result and re-check any calls that land very close
+to 0.5 on both backends.
 
 ## Performance notes (~1000 variants/batch)
 
